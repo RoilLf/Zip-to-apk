@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Web2App Builder</title>
+<style>
+:root{--bg:#080812;--p:#11111d;--p2:#181827;--b:#29293c;--t:#f4f4fb;--m:#9999ad;--a:#7c5cff;--a2:#22d3ee;--g:#36d399}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;color:var(--t);background:radial-gradient(circle at 15% 0%,#6d45d844,transparent 35%),radial-gradient(circle at 90% 20%,#22d3ee22,transparent 30%),var(--bg);min-height:100vh}
+header{height:66px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b);background:#0b0b15dd;backdrop-filter:blur(18px)}.brand{font-weight:800;font-size:20px}.brand b{color:var(--a)}
+main{max-width:900px;margin:auto;padding:30px 16px}.hero{text-align:center;margin:15px auto 30px}.hero h1{font-size:clamp(32px,8vw,54px);margin:0;letter-spacing:-2px}.hero span{background:linear-gradient(90deg,#a78bfa,#22d3ee);-webkit-background-clip:text;color:transparent}.hero p{color:var(--m)}
+.panel{background:#11111dcc;border:1px solid var(--b);border-radius:22px;padding:20px;box-shadow:0 20px 70px #0008}.drop{border:1.5px dashed #ffffff28;border-radius:18px;padding:35px;text-align:center;cursor:pointer}.drop:hover,.drop.drag{border-color:#8b5cf6;background:#8b5cf612}.drop strong{display:block;font-size:17px}.drop small{color:var(--m)}input[type=file]{display:none}
+label{display:block;color:#c8c8d5;font-size:12px;font-weight:700;margin:16px 0 7px}input,select{width:100%;padding:12px;border:1px solid var(--b);border-radius:12px;background:#0b0b14;color:var(--t);outline:0}input:focus,select:focus{border-color:var(--a)}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{border:0;border-radius:12px;padding:12px 16px;color:#fff;font-weight:750;cursor:pointer}.build{width:100%;margin-top:18px;background:linear-gradient(90deg,var(--a),var(--a2))}.build:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:14px;min-height:20px;color:var(--m);font-size:13px}.ok{color:var(--g)}.err{color:#ff7272}.bar{height:7px;border-radius:20px;background:#252538;overflow:hidden;margin-top:12px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a),var(--a2));transition:.3s}.hint{font-size:11px;color:#77778b;line-height:1.5;margin-top:15px}
+</style></head><body>
+<header><div class="brand">Web2<b>App</b></div><small>Real APK build backend</small></header>
+<main><div class="hero"><h1>Build an <span>Android APK</span></h1><p>Upload a web project, configure it, and send it to the build server.</p></div>
+<section class="panel">
+<div class="drop" id="drop"><strong>📦 Select your ZIP or index.html</strong><small>Files stay in your browser until you press Build.</small><input id="file" type="file" accept=".zip,.html,.htm"></div>
+<label>App name</label><input id="name" value="RoliLookup" maxlength="40">
+<div class="row"><div><label>Package name</label><input id="pkg" value="com.example.rolilookup"></div><div><label>Version</label><input id="ver" value="1.0.0"></div></div>
+<div class="row"><div><label>Orientation</label><select id="orientation"><option value="unspecified">Default</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div><div><label>Build type</label><select id="type"><option value="debug">Debug APK</option><option value="release">Release APK</option></select></div></div>
+<button class="build" id="build">Build APK</button><div class="bar"><i id="prog"></i></div><div class="status" id="status">Choose a project to begin.</div>
+<div class="hint">The server must have the Android SDK, JDK and Gradle/Android Gradle Plugin installed. Android's official build system uses Gradle and the Android Gradle Plugin to package APKs. citeturn0search3turn0search10</div>
+</section></main>
+<script>
+const $=id=>document.getElementById(id),drop=$('drop'),file=$('file'),status=$('status'),prog=$('prog');
+drop.onclick=()=>file.click();
+file.onchange=()=>{if(file.files[0]){status.textContent='Selected: '+file.files[0].name;status.className='status ok'}};
+['dragenter','dragover'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add('drag')}));
+['dragleave','drop'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove('drag')}));
+drop.addEventListener('drop',e=>{if(e.dataTransfer.files[0]){file.files=e.dataTransfer.files;file.dispatchEvent(new Event('change'))}});
+$('build').onclick=async()=>{
+ if(!file.files[0]){status.textContent='Select a ZIP or HTML file first.';status.className='status err';return}
+ const fd=new FormData();fd.append('project',file.files[0]);fd.append('name',$('name').value);fd.append('package',$('pkg').value);fd.append('version',$('ver').value);fd.append('orientation',$('orientation').value);fd.append('type',$('type').value);
+ $('build').disabled=true;prog.style.width='20%';status.textContent='Uploading project…';
+ try{
+  const r=await fetch('/api/build',{method:'POST',body:fd});prog.style.width='55%';if(!r.ok)throw new Error(await r.text());
+  const blob=await r.blob();prog.style.width='100%';const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=($('name').value||'app').replace(/[^a-z0-9_-]/gi,'_')+'.apk';a.click();status.textContent='APK built successfully.';status.className='status ok';
+ }catch(e){status.textContent='Build failed: '+e.message;status.className='status err';prog.style.width='0%'}finally{$('build').disabled=false}
+};
+</script></body></html>
